@@ -1,0 +1,65 @@
+import os
+from PIL import Image
+import numpy as np
+import matplotlib.pyplot as plt
+from skimage.filters import threshold_otsu
+from skimage.morphology import remove_small_objects, closing, disk
+from skimage.segmentation import find_boundaries
+
+# Define input and output folders
+input_folder = 'Input_path'
+output_folder = 'output_path'
+
+# Create output folder if it doesn't exist
+os.makedirs(output_folder, exist_ok=True)
+
+def segment_and_draw_boundary(file_path, output_path):
+    # Load and convert the image to grayscale
+    image = Image.open(file_path).convert('L')
+    image_array = np.array(image)
+
+    # Apply Otsu's thresholding to segment the droplet
+    threshold_value = threshold_otsu(image_array)
+    binary_mask = image_array < threshold_value
+
+    # Apply morphological operations to clean the mask
+    cleaned_mask = closing(binary_mask, disk(3))
+    cleaned_mask = remove_small_objects(cleaned_mask, min_size=500)
+
+    # Detect the boundary of the droplet
+    boundary = find_boundaries(cleaned_mask, mode='outer')
+
+    # Create an RGB version of the grayscale image
+    image_rgb = np.stack([image_array] * 3, axis=-1)
+
+    # Overlay the boundary in yellow color
+    image_rgb[boundary] = [255, 255, 0]
+
+    # Save the processed image
+    plt.imsave(output_path, image_rgb.astype(np.uint8))
+
+    # Display the result (optional)
+    plt.figure(figsize=(10, 5))
+    
+    plt.subplot(1, 2, 1)
+    plt.title('Original Image')
+    plt.imshow(image_array, cmap='gray')
+    plt.axis('off')
+    
+    plt.subplot(1, 2, 2)
+    plt.title('Segmented Droplet with Yellow Boundary')
+    plt.imshow(image_rgb)
+    plt.axis('off')
+
+    plt.show()
+
+# Loop through all images in the input folder
+for filename in os.listdir(input_folder):
+    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
+        input_path = os.path.join(input_folder, filename)
+        output_path = os.path.join(output_folder, f"boundary_{filename}")
+        
+        print(f"Processing {filename}...")
+        segment_and_draw_boundary(input_path, output_path)
+
+print("Processing completed for all images.")
