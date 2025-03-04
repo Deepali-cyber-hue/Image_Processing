@@ -1,7 +1,7 @@
 import cv2
 
 # Load the video
-video_path = '/Users/deepali/Downloads/single_drop.mp4'  # Replace with your video path
+video_path = 'video path'  # Replace with your video path
 output_path = 'cropped_video_encoded.mp4'  # Path to save the encoded cropped video
 
 # Open the video file
