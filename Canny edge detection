@@ -5,8 +5,8 @@ from skimage import feature
 import matplotlib.pyplot as plt
 
 # Define the folder path containing images
-input_folder = 'New'
-output_folder = 'bhuvan'
+input_folder = ''
+output_folder = ''
 
 # Create the output folder if it doesn't exist
 os.makedirs(output_folder, exist_ok=True)
