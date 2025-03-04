@@ -1,0 +1,85 @@
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+
+# scikit-image imports
+from skimage import io, color, filters, measure, morphology
+
+# Folder with your images
+folder_path = "Segment cropped image file path"
+
+# Valid image file extensions
+image_extensions = (".png", ".jpg", ".jpeg", ".bmp", ".tiff")
+
+# Minimum size in pixels to keep a region (helps remove noise).
+# Adjust based on your images' scale.
+min_size = 100  
+
+for file_name in os.listdir(folder_path):
+    if file_name.lower().endswith(image_extensions):
+        image_path = os.path.join(folder_path, file_name)
+        
+        # 1. Read the image
+        image = io.imread(image_path)
+        
+        # 2. Convert RGBA -> RGB if needed
+        if image.ndim == 3 and image.shape[-1] == 4:
+            image = color.rgba2rgb(image)
+        
+        # 3. Convert to grayscale
+        gray_image = color.rgb2gray(image)
+        
+        # 4. Threshold (Otsu)
+        threshold_value = filters.threshold_otsu(gray_image)
+        
+        # 5. Create a binary mask where droplet (dark) is True
+        #    If your droplet is actually brighter, invert this comparison
+        binary_mask = gray_image < threshold_value
+        
+        # 6. (Optional) Remove small objects to reduce noise
+        #    Adjust min_size as needed
+        binary_cleaned = morphology.remove_small_objects(binary_mask, min_size=min_size)
+        
+        # 7. Label connected components
+        labeled_mask = measure.label(binary_cleaned)
+        
+        # 8. Extract properties of each connected region
+        regions = measure.regionprops(labeled_mask)
+        
+        if not regions:
+            print(f"Image: {file_name}")
+            print("  No dark regions found.")
+            continue
+        
+        # 9. Find the largest region (by pixel area)
+        largest_region = max(regions, key=lambda r: r.area)
+        droplet_area = largest_region.area
+        
+        # 10. Print the droplet area in pixels
+        print(f"Image: {file_name}")
+        print(f"  Otsu Threshold: {threshold_value:.4f}")
+        print(f"  Largest Droplet Area: {droplet_area} pixels\n")
+        
+        # (Optional) Visualize
+        # Create an overlay showing the largest droplet in red
+        fig, ax = plt.subplots(1, 3, figsize=(12, 4))
+        
+        ax[0].imshow(image)
+        ax[0].set_title("Original Image")
+        ax[0].axis('off')
+        
+        ax[1].imshow(binary_cleaned, cmap='gray')
+        ax[1].set_title("Thresholded + Cleaned")
+        ax[1].axis('off')
+        
+        # Create an empty overlay
+        overlay = np.zeros_like(labeled_mask, dtype=bool)
+        overlay[labeled_mask == largest_region.label] = True
+        
+        ax[2].imshow(image, alpha=0.7)
+        ax[2].imshow(overlay, cmap='Reds', alpha=0.5)
+        ax[2].set_title(f"Largest Droplet: {droplet_area} px")
+        ax[2].axis('off')
+        
+        plt.tight_layout()
+        plt.show()
