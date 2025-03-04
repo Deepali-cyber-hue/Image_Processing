@@ -1,0 +1,108 @@
+import cv2
+import numpy as np
+
+# Define parameters
+video_path = "/Users/deepali/crop_drop.mp4"
+initial_frames = 20
+skip_frames = 300
+analysis_frames = 20
+droplet_detection_threshold = 30  # Adjust threshold as needed
+roi_margin = 50  # Region of interest size around the single droplet
+
+# Function to detect the initial droplet in the first frame
+def detect_initial_droplet(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    
+    # Detect potential droplets using thresholding
+    _, thresh = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Assuming the largest contour in the first frame is the reference droplet
+    if contours:
+        largest_contour = max(contours, key=cv2.contourArea)
+        return cv2.boundingRect(largest_contour)  # (x, y, width, height)
+    return None
+
+# Function to detect new droplets near the reference droplet
+def detect_new_droplets_in_roi(frame, reference_rect):
+    height, width, _ = frame.shape
+    x, y, w, h = reference_rect
+
+    # Define region of interest (ROI) and ensure it stays within frame boundaries
+    x_start = max(x - roi_margin, 0)
+    y_start = max(y - roi_margin, 0)
+    x_end = min(x + w + roi_margin, width)
+    y_end = min(y + h + roi_margin, height)
+
+    # Extract the ROI
+    roi = frame[y_start:y_end, x_start:x_end]
+
+    # Check if ROI is empty
+    if roi.size == 0:
+        return 0
+
+    # Convert ROI to grayscale
+    roi_gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+
+    # Detect new droplets in the ROI
+    _, thresh = cv2.threshold(roi_gray, droplet_detection_threshold, 255, cv2.THRESH_BINARY)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Return the number of detected new droplets
+    return len(contours)
+
+
+# Open the video
+cap = cv2.VideoCapture(video_path)
+frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+current_frame_index = 0
+
+# Track results
+results = []
+
+# Process the video
+while current_frame_index < frame_count:
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    # Detect the initial reference droplet
+    reference_rect = detect_initial_droplet(frame)
+    if reference_rect is None:
+        print("No initial droplet detected. Skipping segment.")
+        current_frame_index += initial_frames + skip_frames
+        cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame_index)
+        continue
+
+    # Analyze the next 20 frames for new droplets generated near the reference droplet
+    droplets_generated = 0
+    for _ in range(analysis_frames):
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Detect new droplets within the region of interest
+        droplets_generated += detect_new_droplets_in_roi(frame, reference_rect)
+
+    # Store the result
+    results.append({
+        "start_frame": current_frame_index,
+        "end_frame": current_frame_index + analysis_frames,
+        "new_droplets": droplets_generated
+    })
+
+    # Skip the next 400 frames
+    cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame_index + analysis_frames + skip_frames)
+    current_frame_index += analysis_frames + skip_frames
+
+# Release the video capture
+cap.release()
+
+# Display results
+import pandas as pd
+df_results = pd.DataFrame(results)
+display(df_results)
+
+# Save results to a CSV file if needed
+df_results.to_csv("droplet_generation_analysis.csv", index=False)
