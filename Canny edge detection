@@ -1,0 +1,51 @@
+import os
+from PIL import Image
+import numpy as np
+from skimage import feature
+import matplotlib.pyplot as plt
+
+# Define the folder path containing images
+input_folder = 'New'
+output_folder = 'bhuvan'
+
+# Create the output folder if it doesn't exist
+os.makedirs(output_folder, exist_ok=True)
+
+# Function to apply edge detection and display results
+def process_and_display_image(file_path):
+    # Load and convert the image to grayscale
+    image = Image.open(file_path).convert('L')
+    image_array = np.array(image)
+
+    # Apply Canny edge detection
+    edges = feature.canny(image_array, sigma=2.0)
+
+    # Display the result
+    plt.figure(figsize=(10, 5))
+    
+    plt.subplot(1, 2, 1)
+    plt.title('Original Image')
+    plt.imshow(image_array, cmap='gray')
+    plt.axis('off')
+    
+    plt.subplot(1, 2, 2)
+    plt.title('Canny Edge Detection')
+    plt.imshow(edges, cmap='gray')
+    plt.axis('off')
+
+    plt.show()
+
+    return edges
+
+# Loop through all images in the input folder and process them
+for filename in os.listdir(input_folder):
+    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
+        input_path = os.path.join(input_folder, filename)
+        print(f"Processing {filename}...")
+        edge_result = process_and_display_image(input_path)
+        
+        # Save the edge-detected image to the output folder
+        output_path = os.path.join(output_folder, f"edge_{filename}")
+        plt.imsave(output_path, edge_result, cmap='gray')
+
+print("Edge detection completed for all images.")
