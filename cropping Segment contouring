@@ -1,0 +1,33 @@
+import os
+from PIL import Image
+import matplotlib.pyplot as plt
+
+# Specify the folder containing your images
+folder_path = "saved file of segment contouring path"  # Change this to your image folder
+
+# Define the crop dimensions as a tuple: (left, upper, right, lower)
+# For example, to crop 100 pixels from the left and top, and set a width and height of 200:
+crop_box = (100, 100,330, 146)  # Adjust these values as needed
+
+# List all image files (you can add more extensions if needed)
+image_extensions = (".png", ".jpg", ".jpeg", ".bmp", ".gif")
+
+# Loop through each file in the folder
+for file_name in os.listdir(folder_path):
+    if file_name.lower().endswith(image_extensions):
+        image_path = os.path.join(folder_path, file_name)
+        try:
+            # Open the image
+            image = Image.open(image_path)
+            
+            # Crop the image using the defined crop box
+            cropped_image = image.crop(crop_box)
+            
+            # Display the cropped image
+            plt.figure(figsize=(4, 4))
+            plt.imshow(cropped_image)
+            plt.axis("off")
+            plt.title(file_name)
+            plt.show()
+        except Exception as e:
+            print(f"Error processing {file_name}: {e}")
