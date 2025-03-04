@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 # Define parameters
-video_path = "/Users/deepali/crop_drop.mp4"
+video_path = "video path"
 initial_frames = 20
 skip_frames = 300
 analysis_frames = 20
