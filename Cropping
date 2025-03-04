@@ -1,0 +1,48 @@
+import cv2
+from matplotlib import pyplot as plt
+
+
+video_path = 'Video_file_path'  # Replace with your video file path
+cap = cv2.VideoCapture(video_path)
+
+# Check if the video was loaded
+if not cap.isOpened():
+    print("Error: Could not open the video.")
+else:
+    # Set the frame position to 100th frame (index starts from 0, so it is frame number 99)
+    frame_number = 99
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+
+    # Read the frame
+    ret, frame = cap.read()
+    if not ret:
+        print("Error: Could not read the frame.")
+    else:
+        # Crop parameters
+        start_x, start_y = 147, 120      # Starting coordinates for cropping (x, y)
+        width, height = 332, 150        # Dimensions of the crop (width, height)
+
+        # Draw a rectangle to show the crop area
+        rect_color = (0, 255, 0)  # Green color for the rectangle (BGR format)
+        thickness = 2
+        cv2.rectangle(frame, (start_x, start_y), (start_x + width, start_y + height), rect_color, thickness)
+
+        # Add text showing the coordinates and dimensions on the image
+        text = f'X: {start_x}, Y: {start_y}, Width: {width}, Height: {height}'
+        text_position = (start_x, start_y - 10)  # Position for the text (slightly above the rectangle)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 0.6
+        font_color = (255, 0, 0)  # Blue color for the text (BGR format)
+        cv2.putText(frame, text, text_position, font, font_scale, font_color, 1, cv2.LINE_AA)
+
+        # Convert the frame from BGR to RGB (for displaying with matplotlib)
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Display the frame with the crop area and text
+        plt.imshow(frame_rgb)
+        plt.title("100th Frame with Crop Area")
+        plt.axis('off')
+        plt.show()
+
+# Release the video capture object
+cap.release()
